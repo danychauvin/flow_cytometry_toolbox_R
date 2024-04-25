@@ -42,21 +42,21 @@ NB: high dimensional data refers to datasets where the number of features or dim
 
 #BiocManager::install("sararselitsky/FastPG")
 
-# Running the analysis
+## Running the analysis
 
-## Exploring data using cytoexploreR
+### Exploring data using cytoexploreR
 
 Run `load_libraries.R`, `import_data_CytoexploreR.R`. Then in `manual_gating_using_cytoexploreR.R` run three different chunks separately to gate T and B cells.
 
 Use `data_analysis.Rmd` to plot 1D/2D distributions, and graphs recapitulating gating schemes as well as frequencies/counts of each cell types in each samples.
 
-## Exploring data using flowworkspace
+### Exploring data using flowworkspace
 
 Run `load_libraries.R`, `import_data_flowWorkSpace.R`. Then, run `plotting_and_clustering.R` to cluster according to Phenograph algorithm, perform enrichment analysis and plot phenographs.
 
 One thing I am not satisfied with now, is the fact that the phenograph gives slightly different results, each time I am running it. Also, not clear to me which parameters I should use. Which are the ones that are making sense?
 
-## Todo
+### Todo
 
 - [] Make the phenograph construction more reproducible
 - [] Set up a metric to compare two phenograph output
