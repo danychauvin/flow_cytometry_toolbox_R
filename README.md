@@ -56,7 +56,7 @@ Run `load_libraries.R`, `import_data_flowWorkSpace.R`. Then, run `plotting_and_c
 
 One thing I am not satisfied with now, is the fact that the phenograph gives slightly different results, each time I am running it. Also, not clear to me which parameters I should use. Which are the ones that are making sense?
 
-### Todo
+### To do
 
 - [] Make the phenograph construction more reproducible
 - [] Set up a metric to compare two phenograph output
