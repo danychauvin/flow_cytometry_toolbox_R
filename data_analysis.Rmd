@@ -1,0 +1,365 @@
+---
+title: "data_analysis"
+output: html_document
+date: "2024-03-12"
+---
+
+# What can be said about the quality of the data?
+
+Let's do some sanity checks. First, we'd like to look at the distributions of all individual channels, and compare these between replicate.
+
+This will enable us to get a sense of what the phenotypes of these cells look like, in terms of central tendencies, and variability.
+
+Also, that will enable us to control for reproducibility.
+
+# 1D Distributions
+
+First, let's write a function that plots all desired distributions.
+```{r message=FALSE, warning=FALSE}
+plot_all_1D_distributions <- function(ini,end,condition){
+  cyto_plot_save(sprintf("./figures/1d_distributions_%s.pdf",condition),width=25,height=25)
+  cyto_plot_custom(layout=c(6,5))
+  
+  xlim_inf <- rep(c(0),times=9)
+  xlim_sup <- c(4e6,4e6,1e6,1e6,1e6,7e5,2e6,7e5,1e6)
+  
+  for (i in 1:9){
+    cyto_plot(fs[ini:end],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title=condition,xlim=c(xlim_inf[i],xlim_sup[i])
+              )}
+  for (i in 10:30){
+    cyto_plot(fs[ini:end],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title=condition,xlim=c(-1e5,1e6))}
+  cyto_plot_complete()}
+```
+
+Then we plot all 1D distributions for all "postSpn","preSpn" and "saline" replicates.
+
+```{r}
+plot_all_1D_distributions(1,6,"postSpn")
+plot_all_1D_distributions(7,12,"preSpn")
+plot_all_1D_distributions(13,18,"saline")
+```
+
+Overall, postSpn samples are more reproducible than preSpn and saline. That also can be explained by the actual number of cells there are in each sample. There are 10 times more cells in postSpn versus preSpn, and 20 times more cells in postSpn versus saline.
+
+```{r}
+cyto_stats_compute(fs,alias="root",stat="count")
+cyto_stats_compute(fs,alias="root",stat="count") %>% 
+  group_by(treatment) %>% 
+  summarise(n=sum(Count))
+```
+
+Let's compare these distributions in each channel: pre|saline|post, to determine where distributions have changed.
+
+First we build the desired function.
+
+```{r message=FALSE, warning=FALSE}
+plot_1D_distribution_comparison <- function(){
+  cyto_plot_save("./figures/1d_distribution_comparison.pdf",width=15,height=45*3)
+  cyto_plot_custom(layout=c(30,3))
+  
+  xlim_inf <- rep(c(0),times=9)
+  xlim_sup <- c(4e6,4e6,1e6,1e6,1e6,7e5,2e6,7e5,1e6)
+  
+  for (i in 1:9){
+    cyto_plot(fs[7:12],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="preSpn",xlim=c(xlim_inf[i],xlim_sup[i]))
+    cyto_plot(fs[13:18],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="saline",xlim=c(xlim_inf[i],xlim_sup[i]))
+    cyto_plot(fs[1:6],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="postSpn",xlim=c(xlim_inf[i],xlim_sup[i]))
+    }
+  for (i in 10:30){
+    cyto_plot(fs[7:12],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,
+              xlim=c(-1e5,1e6),title="preSpn")
+    cyto_plot(fs[13:18],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,
+              xlim=c(-1e5,1e6),title="saline")
+    cyto_plot(fs[1:6],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,
+              xlim=c(-1e5,1e6),title="postSpn")}
+  cyto_plot_complete()}
+```
+
+Then we plot all possible comparisons.
+
+```{r}
+plot_1D_distribution_comparison()
+```
+
+Let's plot here only interesting examples.
+First we write a dedicated function.
+
+```{r}
+plot_1D_distribution_comparison_by_name <- function(channel_list){
+  #cyto_plot_save("./figures/1d_distribution_comparison_.pdf",width=15,height=45*3)
+  
+  xlim_inf <- c(rep(c(0),times=9),rep(c(-1e5),times=20))
+  xlim_sup <- c(4e6,4e6,1e6,1e6,1e6,7e5,2e6,7e5,1e6,rep(c(1e6),times=20))
+  markers <- simplify(lapply(c(1:length(cyto_markers(fs))), FUN=function(.i) return(cyto_markers(fs)[[.i]])))
+  factor_list <- factor(channel_list,levels=channel_list)
+  indexes <- which(simplify(base::lapply(markers,FUN=function(.x) .x %in% channel_list)))
+  markers <- factor(markers,levels=channel_list)
+  
+  indexes <- tibble('markers'=markers,'indexes'=c(1:length(markers))) %>% 
+    arrange(markers) %>% 
+    na.omit() %>% 
+    .$indexes
+  
+  for(i in indexes){
+    cyto_plot_custom(layout=c(1,3))
+    cyto_plot(fs[7:12],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="preSpn",xlim=c(xlim_inf[i],xlim_sup[i]))
+    cyto_plot(fs[13:18],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="saline",xlim=c(xlim_inf[i],xlim_sup[i]))
+    cyto_plot(fs[1:6],parent="root",channels=cyto_channels(fs)[i],density_stack=0.7,axes_trans=transList,title="postSpn",xlim=c(xlim_inf[i],xlim_sup[i]))
+    cyto_plot_complete()}}
+```
+
+Then the plotting.
+
+```{r,warning=FALSE}
+plot_1D_distribution_comparison_by_name(c("CD69"))
+plot_1D_distribution_comparison_by_name(c("CD44"))
+plot_1D_distribution_comparison_by_name(c("PDL2"))
+```
+
+# 2D distributions
+
+Let's make one PDF per file, where we look at all 2D distributions.
+
+```{r message=FALSE, warning=FALSE}
+plot_2d_distributions <- function(k){
+  
+  condition <- cyto_details(fs)$conditions[k]
+  cyto_plot_save(sprintf("./figures/2d_heatmap_%s.pdf",condition),width=135,height=135)
+  cyto_plot_custom(layout=c(30,30))
+  for(i in 1:30){
+    for(j in 1:30){
+      cyto_plot(fs[k],parent="root",channels=cyto_channels(fs)[c(i,j)],
+                xlim=c(lim_inf[i],lim_sup[i]),
+                ylim=c(lim_inf[j],lim_sup[j]),
+                title=cyto_details(fs)$conditions[k],
+                axes_trans=transList)
+    }
+  }
+  cyto_plot_complete()
+}
+
+for(p in 1:18){
+  plot_2d_distributions(p)}
+```
+
+Here, let's write some code to plot single 2D distributions.
+
+```{r}
+plot_single_2d_distributions <- function(k,x_marker,y_marker){
+  
+  condition <- cyto_details(fs)$conditions[k]
+  #cyto_plot_save(sprintf("./figures/2d_heatmap_%s_%s_%s.pdf",x_marker,y_marker,condition),width=135,height=135)
+  cyto_plot_custom(layout=c(1,1))
+  
+  markers <- simplify(lapply(c(1:length(cyto_markers(fs))), FUN=function(.i) return(cyto_markers(fs)[[.i]])))
+  i <- which(simplify(base::lapply(markers,FUN=function(.x) .x %in% x_marker)))
+  j <- which(simplify(base::lapply(markers,FUN=function(.y) .y %in% y_marker)))
+
+  cyto_plot(fs[k],parent="root",channels=cyto_channels(fs)[c(i,j)],
+            xlim=c(lim_inf[i],lim_sup[i]),
+            ylim=c(lim_inf[j],lim_sup[j]),
+            title=cyto_details(fs)$conditions[k],
+            axes_trans=transList)
+  cyto_plot_complete()
+}
+```
+
+Plot single 2D distributions.
+
+```{r,warning=FALSE}
+plot_single_2d_distributions(1,"CD69","CD44")
+```
+
+# Grouped 2D distributions for comparison
+
+```{r message=FALSE, warning=FALSE}
+plot_2d_distributions_comparison <- function(n){
+  
+  lim_inf <- c(rep(c(0),times=9),rep(-1e5,times=21))
+  lim_sup <- c(4e6,4e6,1e6,1e6,1e6,7e5,2e6,7e5,1e6,rep(1e6,times=21))
+  
+  cyto_plot_save(sprintf("./figures/2d_comparison_%s.pdf",cyto_markers(fs)[n]),width=10,height=100)
+  cyto_plot_custom(layout=c(30,3))
+  #for(i in 1:30){
+    i <- n
+    for(j in 1:30){
+      cyto_plot(fs[7:12],parent="root",channels=cyto_channels(fs)[c(i,j)],
+                xlim=c(lim_inf[i],lim_sup[i]),
+                ylim=c(lim_inf[j],lim_sup[j]),
+                axes_trans=transList,
+                group_by = c("treatment"),
+                point_col_alpha = 0.5,
+                #point_col="blue",
+                contour_lines = 10,
+                contour_line_type = 1,
+                contour_line_width = 1.2,
+                contour_line_col = "black",
+                contour_line_alpha = 0.2,
+                display=1500,
+                title=c("preSpn"))
+      cyto_plot(fs[13:18],parent="root",channels=cyto_channels(fs)[c(i,j)],
+                xlim=c(lim_inf[i],lim_sup[i]),
+                ylim=c(lim_inf[j],lim_sup[j]),
+                axes_trans=transList,
+                group_by = c("treatment"),
+                point_col_alpha = 0.5,
+                #point_col="blue",
+                contour_lines = 10,
+                contour_line_type = 1,
+                contour_line_width = 1.2,
+                contour_line_col = "black",
+                contour_line_alpha = 0.2,
+                display=1500,
+                title=c("saline"))
+      cyto_plot(fs[1:6],parent="root",channels=cyto_channels(fs)[c(i,j)],
+                xlim=c(lim_inf[i],lim_sup[i]),
+                ylim=c(lim_inf[j],lim_sup[j]),
+                axes_trans=transList,
+                group_by = c("treatment"),
+                point_col_alpha = 0.5,
+                #point_col="blue",
+                contour_lines = 10,
+                contour_line_type = 1,
+                contour_line_width = 1.2,
+                contour_line_col = "black",
+                contour_line_alpha = 0.2,
+                display=1500,
+                title=c("postSpn"))
+    }
+  cyto_plot_complete()
+}
+
+#plot_2d_distributions_comparison(1)
+```
+
+```{r}
+for(n in 1:30){
+  plot_2d_distributions_comparison(n)}
+```
+
+# Check gating schemes
+
+```{r message=FALSE, warning=FALSE}
+cyto_plot_gating_scheme(fs,
+                        #channels=c("CD19","7AAD"),
+                        #alias=c("B-cells","T-cells"),
+                        xlim=c(-1e5,1e6),
+                        ylim=c(-1e5,1e6))
+```
+  
+```{r message=FALSE, warning=FALSE}
+cyto_plot_gating_scheme(fs[[1]],
+                        back_gate = TRUE,
+                        gate_track = TRUE)
+```
+
+```{r}
+count_df <- cyto_stats_compute(fs,
+                   alias = c("IgD_CD8+IgM+","IgD_CD8-IgM+","IgD_CD8-IgM-","CD8_IgD+","CD4+","CD4-CD8-"),
+                   stat = "count")
+
+freq_df <- cyto_stats_compute(fs,parent="root",
+                   alias = c("IgD_CD8+IgM+","IgD_CD8-IgM+","IgD_CD8-IgM-","CD8_IgD+","CD4+","CD4-CD8-"),
+                   stat = "freq")
+```
+    
+```{r}
+freq_df %>% 
+  dplyr::filter(replica %in% as.character(c(79:84))) %>% 
+  ggplot(aes(x=Population,y=Frequency,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="postSpn")
+
+freq_df %>% 
+  dplyr::filter(replica %in% as.character(c(1:6))) %>% 
+  ggplot(aes(x=Population,y=Frequency,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="preSpn")
+
+freq_df %>% 
+  dplyr::filter(replica %in% as.character(c(67:72))) %>% 
+  ggplot(aes(x=Population,y=Frequency,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="saline")
+```
+```{r}
+freq_df %>% 
+  #dplyr::filter(replica %in% as.character(c(79:84))) %>% 
+  group_by(treatment,Population) %>%
+  mutate(m_freq=mean(Frequency,na.rm=TRUE),
+         sd_freq=sd(Frequency,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  distinct(treatment,Population,.keep_all = TRUE) %>% 
+  ggplot(aes(x=Population,y=m_freq,fill=treatment))+
+  geom_col(position = "dodge")+
+  geom_errorbar(aes(ymin=m_freq-sd_freq,ymax=m_freq+sd_freq),position='dodge')+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab("Population Mean frequency")+
+  labs(fill="Condition")
+ggsave("./figures/mean_frequencies.pdf",height=5,width=7)
+```
+    
+    
+    
+```{r}
+count_df %>% 
+  dplyr::filter(replica %in% as.character(c(79:84))) %>% 
+  ggplot(aes(x=Population,y=Count,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="postSpn")+
+  scale_y_log10()
+
+count_df %>% 
+  dplyr::filter(replica %in% as.character(c(1:6))) %>% 
+  ggplot(aes(x=Population,y=Count,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="preSpn")+
+  scale_y_log10()
+
+count_df %>% 
+  dplyr::filter(replica %in% as.character(c(67:72))) %>% 
+  ggplot(aes(x=Population,y=Count,fill=replica))+
+  geom_col(position = "dodge")+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title="saline")+
+  scale_y_log10()
+```
+
+```{r}
+count_df %>% 
+  #dplyr::filter(replica %in% as.character(c(79:84))) %>% 
+  group_by(treatment,Population) %>%
+  mutate(m_count=mean(Count,na.rm=TRUE),
+         sd_count=sd(Count,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  distinct(treatment,Population,.keep_all = TRUE) %>% 
+  ggplot(aes(x=Population,y=m_count,fill=treatment))+
+  geom_col(position = "dodge")+
+  geom_errorbar(aes(ymin=m_count-sd_count,ymax=m_count+sd_count),position='dodge')+
+  #facet_wrap(~replica)+
+  theme_cowplot()+
+  theme(axis.text.x = element_text(angle = 90))+
+  ylab("Population Mean Count")+
+  labs(fill="Condition")+
+  scale_y_log10()
+ggsave("./figures/mean_counts.pdf",height=5,width=7)
+```
