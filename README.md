@@ -58,6 +58,6 @@ One thing I am not satisfied with now, is the fact that the phenograph gives sli
 
 ### To do
 
-- [] Make the phenograph construction more reproducible
-- [] Set up a metric to compare two phenograph output
+- [] Make the phenograph construction more reproducible.
+- [] Set up a metric to compare two phenograph output.
 
